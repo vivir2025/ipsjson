@@ -23,7 +23,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 | a PHP script and you can easily do that on your own.
 |
 */
-$config['base_url'] = 'http://localhost/ips';
+$config['base_url'] = 'http://45.167.125.238/ips45';
 
 /*
 |--------------------------------------------------------------------------

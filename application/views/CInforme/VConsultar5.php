@@ -2,13 +2,13 @@
     <div>
         <hr>
         <div>
-            Generar Informe de Facturacion por Rango de Fecha
+            Generar Rips Json Por Fecha
         </div>
         <hr>
 
         <label class="text-left">
             <div>
-                <form method="post" action="<?= site_url('CInforme/exportar3') ?>">
+                <form method="post" action="<?= site_url('CInforme/Exportar_json') ?>">
                     <table border="0" cellpading="0" cellspacing="0">
                         <tr>
                             <td width="80">

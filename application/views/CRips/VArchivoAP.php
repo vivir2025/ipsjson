@@ -35,7 +35,7 @@
 	<br>
 
 	<div id="text_welcome">
-		<form action="<?= site_url('CRips/exportar_ap') ?>" method="post">
+		<form action="<?= site_url('CRips/exportar_rips_json') ?>" method="post">
 			<table border="0" cellpading="0" cellspacing="0">
 				<tr>
 					<td width="56">

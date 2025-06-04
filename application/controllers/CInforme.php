@@ -80,6 +80,19 @@ public function informe1()
         $this->load->view("CPlantilla/VFooter");
     }
 
+        public function   informe5(){
+
+         $data['title'] = 'IPS | RIPS-JSON';
+
+        $this->load->view("CPlantilla/VHead", $data);
+
+        $this->load->view("CPlantilla/VBarraMenu");
+
+        $this->load->view("CInforme/VConsultar5.php");
+
+        $this->load->view("CPlantilla/VFooter");
+    }
+
 
 
     public function exportar() {
@@ -953,7 +966,7 @@ public function exportar_2() {
 
     echo "</table>";
 }
-public function exportar_3() {
+public function exportar3() {
     $filename = 'informe_facturacion_' . date('Y-m-d') . '.xls';
 
     $fecha1 = $this->input->post('fecha');
@@ -996,6 +1009,237 @@ public function exportar_3() {
     }
 
     echo "</table>";
+}
+
+public function Exportar_json() {
+    $fecha1 = $this->input->post('fecha');
+    $fecha2 = $this->input->post('fecha1');
+    
+    $data = $this->MInforme->informe_json_rips($fecha1, $fecha2);
+    
+    // Agrupar datos por paciente
+    $pacientes_agrupados = [];
+    foreach ($data as $registro) {
+        $documento = $registro->documento;
+        if (!isset($pacientes_agrupados[$documento])) {
+            $pacientes_agrupados[$documento] = [
+                'info_paciente' => $registro,
+                'servicios' => [
+                    'facturado' => [],
+                    'no_facturado' => [],
+                    'laboratorio_sin_cita' => []
+                ]
+            ];
+        }
+        
+        // Clasificar servicios por estado
+        switch ($registro->estado_factura) {
+            case 'Facturado':
+            case 'Finalizado':
+                $pacientes_agrupados[$documento]['servicios']['facturado'][] = $registro;
+                break;
+            case 'No facturado':
+                $pacientes_agrupados[$documento]['servicios']['no_facturado'][] = $registro;
+                break;
+            case 'Laboratorio sin cita':
+                $pacientes_agrupados[$documento]['servicios']['laboratorio_sin_cita'][] = $registro;
+                break;
+        }
+    }
+    
+    // Construir estructura JSON RIPS
+    $json_structure = [
+        "numDocumentoIdObligado" => "900817959",
+        "numFactura" => "FCAP" . date('YmdHis'),
+        "tipoNota" => "",
+        "numNota" => "",
+        "usuarios" => []
+    ];
+    
+    $consecutivo_global = 1;
+    
+    foreach ($pacientes_agrupados as $documento => $paciente_data) {
+        $info_paciente = $paciente_data['info_paciente'];
+        
+        // Obtener información adicional del paciente (fecha nacimiento, sexo, etc.)
+        $info_adicional = $this->obtener_info_adicional_paciente($documento);
+        
+        $usuario = [
+            "tipoDocumentoIdentificacion" => $info_paciente->tipo_documento ?? "CC",
+            "numDocumentoIdentificacion" => $documento,
+            "tipoUsuario" => "02",
+            "fechaNacimiento" => $info_adicional->fecha_nacimiento ?? "1980-01-01",
+            "codSexo" => $info_adicional->sexo ?? "M",
+            "codPaisResidencia" => "170",
+            "codMunicipioResidencia" => "19130",
+            "codZonaTerritorialResidencia" => "01",
+            "incapacidad" => "NO",
+            "codPaisOrigen" => "170",
+            "consecutivo" => $consecutivo_global++,
+            "servicios" => [
+                "consultas" => [],
+                "procedimientos" => []
+            ]
+        ];
+        
+        $consecutivo_servicio = 1;
+        $consultas_agregadas = []; // Array para controlar consultas duplicadas
+        
+        // Procesar servicios facturados
+        foreach ($paciente_data['servicios']['facturado'] as $servicio) {
+            if ($this->es_consulta($servicio->cups)) {
+                // Verificar si ya se agregó esta consulta
+                if (!in_array($servicio->cups, $consultas_agregadas)) {
+                    $usuario["servicios"]["consultas"][] = [
+                        "codPrestador" => "190010882401",
+                        "fechaInicioAtencion" => date('Y-m-d H:i', strtotime($servicio->fecha)),
+                        "numAutorizacion" => null,
+                        "codConsulta" => $servicio->cups,
+                        "modalidadGrupoServicioTecSal" => "02",
+                        "grupoServicios" => "01",
+                        "codServicio" => "0",
+                        "finalidadTecnologiaSalud" => "10",
+                        "causaMotivoAtencion" => "15",
+                        "codDiagnosticoPrincipal" => "I10X",
+                        "codDiagnosticoRelacionado1" => "",
+                        "codDiagnosticoRelacionado2" => "",
+                        "codDiagnosticoRelacionado3" => "",
+                        "tipoDiagnosticoPrincipal" => "01",
+                        "tipoDocumentoIdentificacion" => $info_paciente->tipo_documento ?? "CC",
+                        "numDocumentoIdentificacion" => $documento,
+                        "vrServicio" => 0,
+                        "conceptoRecaudo" => "03",
+                        "valorPagoModerador" => 0,
+                        "numFEVPagoModerador" => "1",
+                        "consecutivo" => $consecutivo_servicio++,
+                        "estado" => "Facturado"
+                    ];
+                    $consultas_agregadas[] = $servicio->cups; // Marcar como agregada
+                }
+            } else {
+                $usuario["servicios"]["procedimientos"][] = [
+                    "codPrestador" => "190010882401",
+                    "tipoDocumentoIdentificacion" => $info_paciente->tipo_documento ?? "CC",
+                    "numDocumentoIdentificacion" => $documento,
+                    "fechaProcedimiento" => date('Y-m-d', strtotime($servicio->fecha)),
+                    "codProcedimiento" => $servicio->cups,
+                    "ambitoRealizacion" => "1",
+                    "finalidadProcedimiento" => "10",
+                    "personalQueAtiende" => "5",
+                    "codDiagnosticoPrincipal" => "I10X",
+                    "codDiagnosticoRelacionado" => "",
+                    "complicacion" => "",
+                    "formaRealizacionActo" => "0",
+                    "valorProcedimiento" => 0,
+                    "consecutivo" => $consecutivo_servicio++,
+                    "estado" => "Facturado"
+                ];
+            }
+        }
+        
+        // Procesar servicios no facturados
+        foreach ($paciente_data['servicios']['no_facturado'] as $servicio) {
+            if ($this->es_consulta($servicio->cups)) {
+                // Verificar si ya se agregó esta consulta
+                if (!in_array($servicio->cups, $consultas_agregadas)) {
+                    $usuario["servicios"]["consultas"][] = [
+                        "codPrestador" => "190010882401",
+                        "fechaInicioAtencion" => date('Y-m-d H:i', strtotime($servicio->fecha)),
+                        "numAutorizacion" => null,
+                        "codConsulta" => $servicio->cups,
+                        "modalidadGrupoServicioTecSal" => "02",
+                        "grupoServicios" => "01",
+                        "codServicio" => "0",
+                        "finalidadTecnologiaSalud" => "10",
+                        "causaMotivoAtencion" => "15",
+                        "codDiagnosticoPrincipal" => "I10X",
+                        "codDiagnosticoRelacionado1" => "",
+                        "codDiagnosticoRelacionado2" => "",
+                        "codDiagnosticoRelacionado3" => "",
+                        "tipoDiagnosticoPrincipal" => "01",
+                        "tipoDocumentoIdentificacion" => $info_paciente->tipo_documento ?? "CC",
+                        "numDocumentoIdentificacion" => $documento,
+                        "vrServicio" => 0,
+                        "conceptoRecaudo" => "03",
+                        "valorPagoModerador" => 0,
+                        "numFEVPagoModerador" => "1",
+                        "consecutivo" => $consecutivo_servicio++,
+                        "estado" => "No Facturado"
+                    ];
+                    $consultas_agregadas[] = $servicio->cups; // Marcar como agregada
+                }
+            } else {
+                $usuario["servicios"]["procedimientos"][] = [
+                    "codPrestador" => "190010882401",
+                    "tipoDocumentoIdentificacion" => $info_paciente->tipo_documento ?? "CC",
+                    "numDocumentoIdentificacion" => $documento,
+                    "fechaProcedimiento" => date('Y-m-d', strtotime($servicio->fecha)),
+                    "codProcedimiento" => $servicio->cups,
+                    "ambitoRealizacion" => "1",
+                    "finalidadProcedimiento" => "10",
+                    "personalQueAtiende" => "5",
+                    "codDiagnosticoPrincipal" => "I10X",
+                    "codDiagnosticoRelacionado" => "",
+                    "complicacion" => "",
+                    "formaRealizacionActo" => "0",
+                    "valorProcedimiento" => 0,
+                    "consecutivo" => $consecutivo_servicio++,
+                    "estado" => "No Facturado"
+                ];
+            }
+        }
+        
+        // Procesar laboratorios sin cita
+        foreach ($paciente_data['servicios']['laboratorio_sin_cita'] as $servicio) {
+            $usuario["servicios"]["procedimientos"][] = [
+                "codPrestador" => "190010882401",
+                "tipoDocumentoIdentificacion" => $info_paciente->tipo_documento ?? "CC",
+                "numDocumentoIdentificacion" => $documento,
+                "fechaProcedimiento" => date('Y-m-d', strtotime($servicio->fecha)),
+                "codProcedimiento" => $servicio->cups,
+                "ambitoRealizacion" => "1",
+                "finalidadProcedimiento" => "10",
+                "personalQueAtiende" => "5",
+                "codDiagnosticoPrincipal" => "I10X",
+                "codDiagnosticoRelacionado" => "",
+                "complicacion" => "",
+                "formaRealizacionActo" => "0",
+                "valorProcedimiento" => 0,
+                "consecutivo" => $consecutivo_servicio++,
+                "estado" => "Laboratorio sin cita"
+            ];
+        }
+        
+        $json_structure["usuarios"][] = $usuario;
+    }
+    
+    // Enviar respuesta JSON
+    header('Content-Type: application/json; charset=utf-8');
+    header('Content-Disposition: attachment; filename="rips_' . date('Y-m-d_H-i-s') . '.json"');
+    echo json_encode($json_structure, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+}
+
+private function obtener_info_adicional_paciente($documento) {
+    return $this->db->query("
+        SELECT 
+            pacFecNacimiento as fecha_nacimiento,
+            pacSexo as sexo
+        FROM paciente 
+        WHERE pacDocumento = ?
+    ", [$documento])->row();
+}
+
+private function es_consulta($cups_code) {
+    // Definir rangos de códigos que corresponden a consultas
+    $consulta_ranges = ['890', '891', '892', '893'];
+    $codigo_str = (string)$cups_code;
+    
+    foreach ($consulta_ranges as $range) {
+        if (strpos($codigo_str, $range) === 0) {
+            return true;
+        }
+    }
+    return false;
 }
  
 
