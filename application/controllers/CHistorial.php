@@ -331,6 +331,56 @@ echo "</div>";
     }
 }
 
+public function get_consultas_especialidades() {
+   ob_clean();
+   header('Content-Type: application/json');
+
+   $fechaInicio = $this->input->post('fecha_inicio');
+   $fechaFin = $this->input->post('fecha_fin');
+
+   // Consulta para todas las especialidades
+   $query = $this->db->query("
+       SELECT 
+           p.idProceso,
+           COUNT(*) as total
+       FROM cita c
+       JOIN agenda a ON c.agenda_idAgenda = a.idAgenda
+       JOIN proceso p ON a.proceso_idProceso = p.idProceso
+       WHERE c.citFecha BETWEEN ? AND ?
+       AND p.idProceso IN (1, 2, 3, 4, 5, 6, 7, 13)
+       AND c.citEstado IN ('FINALIZADO', 'FINALIZADO Y FACTURADO')
+       GROUP BY p.idProceso
+   ", [$fechaInicio, $fechaFin]);
+
+   $resultados = $query->result_array();
+
+   // Formatear respuesta
+   $response = [
+      'control' => 0,
+       'internista' => 0,
+       'psicologia' => 0,
+       'nutricion' => 0,
+       'trabajo_social' => 0,
+       'nefrologia' => 0,
+       'fisioterapia' => 0
+   ];
+
+   foreach ($resultados as $row) {
+       switch ($row['idProceso']) {
+           case 1: $response['control'] = $row['total']; break;
+           case 2: $response['trabajo_social'] = $row['total']; break;
+           case 3: $response['reformulacion'] = $row['total']; break;
+           case 4: $response['nutricion'] = $row['total']; break;
+           case 5: $response['psicologia'] = $row['total']; break;
+           case 6: $response['nefrologia'] = $row['total']; break;
+           case 7: $response['internista'] = $row['total']; break;
+           case 13: $response['fisioterapia'] = $row['total']; break;
+       }
+   }
+
+   echo json_encode($response);
+   exit();
+}
 
    
 

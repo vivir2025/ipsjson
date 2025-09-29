@@ -182,7 +182,9 @@ if (!$this->session->userdata('login')) {
                         <a  id=miBoton class="dropdown-item" href="<?= site_url('CInforme/informe1') ?>">Informe 1552</a>
                         <a  id=miBoton class="dropdown-item" href="<?= site_url('CInforme/informe3') ?>">Informe Facturacion</a>
                         <a  id=miBoton class="dropdown-item" href="<?= site_url('CInforme/informe4') ?>">Informe Historia Clinica</a>
+                        <a  id=miBoton class="dropdown-item" href="<?= site_url('CInforme/informe7') ?>">Informe Historia Clinica 2</a>
                         <a  id=miBoton class="dropdown-item" href="<?= site_url('CInforme/informe5') ?>">Exportar Rips Json</a>
+                        <a  id=miBoton class="dropdown-item" href="<?= site_url('CInforme/informe6') ?>">Informe App</a>
 						<a  id=miBoton class="dropdown-item" href="<?= site_url('CHistoria/contador') ?>">Contador Citas</a>
 						  <a  id=miBoton class="dropdown-item" href="<?= site_url('CInforme/informe2') ?>">Generador Reporte Dinamico</a>
 						

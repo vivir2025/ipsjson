@@ -93,19 +93,6 @@ class CHistoria extends CI_Controller
     
         $this->load->view("CPlantilla/VFooter");
     }
-        public function visitas()
-    {
-    
-        $data['title'] = 'HISTORIAL DE VSITAS';
-    
-        $this->load->view("CPlantilla/VHead", $data);
-    
-        $this->load->view("CPlantilla/VBarraMenu");
-    
-        $this->load->view("CHistorial/L_visitas.php");
-    
-        $this->load->view("CPlantilla/VFooter");
-    }
 
     
     public function agenda_cita()
@@ -2989,113 +2976,115 @@ public function upload_paraclinico()
    
 }
 
-public function importar_excel1()
-{
-
-    $path = 'archivo/';
-    include APPPATH . "/third_party/PHPExcel.php";
-    $config['upload_path'] = $path;
-    $config['allowed_types'] = 'xlsx|xls|csv';
-    $config['remove_spaces'] = true;
 
 
-    $this->load->library('upload', $config);
-        $this->upload->initialize($config); // uploadFile
-        $hc_idHc = $this->input->post('idHistoria');
+   public function importar_excel1() {
+        // Limpiar cualquier salida previa
+        if (ob_get_length()) ob_clean();
 
+        $path = 'archivo/';
+        include APPPATH . "third_party/PHPExcel.php";
 
+        $config['upload_path'] = $path;
+        $config['allowed_types'] = 'xlsx|xls|csv';
+        $config['remove_spaces'] = true;
+
+        $this->load->library('upload', $config);
+        $this->upload->initialize($config);
+
+        $response = [];
 
         if (!$this->upload->do_upload('uploadFile')) {
-            $error = array(
-                'error' => $this->upload->display_errors()
-            );
+            $response = [
+                'success' => false,
+                'message' => strip_tags($this->upload->display_errors())
+            ];
         } else {
-            $data = array(
-                'upload_data' => $this->upload->data()
-            );
-        }
-
-
-        if (empty($error)) {
-            if (!empty($data['upload_data']['file_name'])) {
-                $import_xls_file = $data['upload_data']['file_name'];
-            } else {
-                $import_xls_file = 0;
-            }
-
-
+            $data = $this->upload->data();
+            $import_xls_file = $data['file_name'];
             $inputFileName = $path . $import_xls_file;
 
-            $inputFileType = PHPExcel_IOFactory::identify($inputFileName);
-            $objReader = PHPExcel_IOFactory::createReader($inputFileType);
-            $objPHPExcel = $objReader->load($inputFileName);
-            $allDataInSheet = $objPHPExcel->setActiveSheetIndex(0)
-            ->toArray(null, true, true, true);
-            $flag = true;
+            try {
+                $inputFileType = PHPExcel_IOFactory::identify($inputFileName);
+                $objReader = PHPExcel_IOFactory::createReader($inputFileType);
+                $objPHPExcel = $objReader->load($inputFileName);
+                $allDataInSheet = $objPHPExcel->setActiveSheetIndex(0)->toArray(null, true, true, true);
 
-            $i = 0;
-            foreach ($allDataInSheet as $value) {
-                if ($flag) {
-                    $flag = false;
-                    continue;
+                $inserdata = [];
+                $flag = true;
+                $i = 0;
+                foreach ($allDataInSheet as $value) {
+                    if ($flag) {
+                        $flag = false;
+                        continue;
+                    }
+
+                    $inserdata[$i]['fecha'] = $value['A'];
+                    $inserdata[$i]['identificacion'] = $value['B'];
+                    $inserdata[$i]['colesterol_total'] = $value['C'];
+                    $inserdata[$i]['colesterol_hdl'] = $value['D'];
+                    $inserdata[$i]['trigliceridos'] = $value['E'];
+                    $inserdata[$i]['colesterol_ldl'] = $value['F'];
+                    $inserdata[$i]['hemoglobina'] = $value['G'];
+                    $inserdata[$i]['hematocrocito'] = $value['H'];
+                    $inserdata[$i]['plaquetas'] = $value['I'];
+                    $inserdata[$i]['hemoglobina_glicosilada'] = $value['J'];
+                    $inserdata[$i]['glicemia_basal'] = $value['K'];
+                    $inserdata[$i]['glicemia_post'] = $value['L'];
+                    $inserdata[$i]['creatinina'] = $value['M'];
+                    $inserdata[$i]['creatinuria'] = $value['N'];
+                    $inserdata[$i]['microalbuminuria'] = $value['O'];
+                    $inserdata[$i]['albumina'] = $value['P'];
+                    $inserdata[$i]['relacion_albuminuria_creatinuria'] = $value['Q'];
+                    $inserdata[$i]['parcial_orina'] = $value['R'];
+                    $inserdata[$i]['depuracion_creatinina'] = $value['S'];
+                    $inserdata[$i]['creatinina_orina_24'] = $value['T'];
+                    $inserdata[$i]['proteina_orina_24'] = $value['U'];
+                    $inserdata[$i]['hormona_estimulante_tiroides'] = $value['V'];
+                    $inserdata[$i]['hormona_paratiroidea'] = $value['W'];
+                    $inserdata[$i]['albumina_suero'] = $value['X'];
+                    $inserdata[$i]['fosforo_suero'] = $value['Y'];
+                    $inserdata[$i]['nitrogeno_ureico'] = $value['Z'];
+                    $inserdata[$i]['acido_urico_suero'] = $value['AA'];
+                    $inserdata[$i]['calcio'] = $value['AB'];
+                    $inserdata[$i]['sodio_suero'] = $value['AC'];
+                    $inserdata[$i]['potasio_suero'] = $value['AD'];
+                    $inserdata[$i]['hierro_total'] = $value['AE'];
+                    $inserdata[$i]['ferritina'] = $value['AF'];
+                    $inserdata[$i]['transferrina'] = $value['AG'];
+                    $inserdata[$i]['fosfatasa_alcalina'] = $value['AH'];
+                    $inserdata[$i]['acido_folico_suero'] = $value['AI'];
+                    $inserdata[$i]['vitamina_b12'] = $value['AJ'];
+                    $inserdata[$i]['nitrogeno_ureico_orina_24'] = $value['AK'];
+
+                    $i++;
                 }
 
-                $inserdata[$i]['fecha'] = $value['A'];
-                $inserdata[$i]['identificacion'] = $value['B'];
-                $inserdata[$i]['colesterol_total'] = $value['C'];
-                $inserdata[$i]['colesterol_hdl'] = $value['D'];
-                $inserdata[$i]['trigliceridos'] = $value['E'];
-				$inserdata[$i]['colesterol_ldl'] = $value['F'];
-				$inserdata[$i]['hemoglobina'] = $value['G'];
-				$inserdata[$i]['hematocrocito'] = $value['H'];
-				$inserdata[$i]['plaquetas'] = $value['I'];
-				$inserdata[$i]['hemoglobina_glicosilada'] = $value['J'];
-				$inserdata[$i]['glicemia_basal'] = $value['K'];
-				$inserdata[$i]['glicemia_post'] = $value['L'];
-				$inserdata[$i]['creatinina'] = $value['M'];
-				$inserdata[$i]['creatinuria'] = $value['N'];
-				$inserdata[$i]['microalbuminuria'] = $value['O'];
-				$inserdata[$i]['albumina'] = $value['P'];
-				$inserdata[$i]['relacion_albuminuria_creatinuria'] = $value['Q'];
-				$inserdata[$i]['parcial_orina'] = $value['R'];
-				$inserdata[$i]['depuracion_creatinina'] = $value['S'];
-				$inserdata[$i]['creatinina_orina_24'] = $value['T'];
-				$inserdata[$i]['proteina_orina_24'] = $value['U'];
-				$inserdata[$i]['hormona_estimulante_tiroides'] = $value['V'];
-				$inserdata[$i]['hormona_paratiroidea'] = $value['W'];
-				$inserdata[$i]['albumina_suero'] = $value['X'];
-				$inserdata[$i]['fosforo_suero'] = $value['Y'];
-				$inserdata[$i]['nitrogeno_ureico'] = $value['Z'];
-				$inserdata[$i]['acido_urico_suero'] = $value['AA'];
-				$inserdata[$i]['calcio'] = $value['AB'];
-				$inserdata[$i]['sodio_suero'] = $value['AC'];
-				$inserdata[$i]['potasio_suero'] = $value['AD'];
-				$inserdata[$i]['hierro_total'] = $value['AE'];
-				$inserdata[$i]['ferritina'] = $value['AF'];
-				$inserdata[$i]['transferrina'] = $value['AG'];
-				$inserdata[$i]['fosfatasa_alcalina'] = $value['AH'];
-				$inserdata[$i]['acido_folico_suero'] = $value['AI'];
-				$inserdata[$i]['vitamina_b12'] = $value['AJ'];
-				$inserdata[$i]['nitrogeno_ureico_orina_24'] = $value['AK'];
+                $resultado = $this->MHistoria->guardar_paraclinico_excel($inserdata);
+                unlink($inputFileName);
 
-                $i++;
+                $response = [
+                    'success' => $resultado ? true : false,
+                    'message' => $resultado ? 'Datos guardados correctamente' : 'No se pudo guardar la información'
+                ];
+            } catch (Exception $e) {
+                if (file_exists($inputFileName)) {
+                    unlink($inputFileName);
+                }
+
+                $response = [
+                    'success' => false,
+                    'message' => 'Error al procesar el archivo: ' . $e->getMessage()
+                ];
             }
-            $result = $this->MHistoria->guardar_paraclinico_excel($inserdata);
-
-            unlink($inputFileName);
-
-            echo $result;
-        } else {
-
-            if (!empty($data['upload_data']['file_name'])) {
-                $import_xls_file = $data['upload_data']['file_name'];
-            } else {
-                $import_xls_file = 0;
-            }
-            $inputFileName = $path . $import_xls_file;
-            unlink($inputFileName);
         }
+
+        // SALIDA SEGURA EN JSON
+        header('Content-Type: application/json');
+        echo json_encode($response);
+        exit;
     }
+
 
     public function lista_paraclinico($doc)
     {
