@@ -3,26 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador RIPS JSON</title>
+    <title>Generador RIPS JSON con Visitas Domiciliarias</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .report-container {
-            max-width: 850px;
+            max-width: 900px;
             margin: 2rem auto;
             padding: 2rem;
-            background: #ffffff; /* Solid white background */
+            background: #ffffff;
             border-radius: 15px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            color: #333; /* Changed text color to dark for contrast */
         }
         
-        .form-content {
-            background: #ffffff; /* Solid white background */
-            padding: 2rem;
-            border-radius: 12px;
-            color: #333;
-            border: 1px solid rgba(0, 0, 0, 0.1); /* Adjusted border for white background */
+        .api-status {
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
         }
         
         .form-table {
@@ -33,15 +34,32 @@
             border: 1px solid #dee2e6;
         }
         
-        .date-input-group {
-            margin-bottom: 1rem;
+        .btn-generate {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            border: none;
+            padding: 0.8rem 2.5rem;
+            font-weight: 700;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
-        .date-input-group label {
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 0.5rem;
-            display: block;
+        .btn-generate:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
+            color: white;
+            background: linear-gradient(135deg, #0056b3, #003d80);
+        }
+        
+        .json-badge {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 0.9rem;
         }
         
         #loadingOverlay {
@@ -51,7 +69,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(128, 128, 128, 0.5); /* Transparent gray background */
+            background: rgba(128, 128, 128, 0.5);
             z-index: 9999;
             backdrop-filter: blur(5px);
         }
@@ -62,8 +80,8 @@
             left: 50%;
             transform: translate(-50%, -50%);
             text-align: center;
-            color: #333; /* Dark text for contrast */
-            background: #ffffff; /* White background */
+            color: #333;
+            background: #ffffff;
             padding: 2rem;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -79,135 +97,38 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
-        .loading-text {
-            font-size: 1.4rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-        
-        .loading-progress {
-            width: 250px;
-            height: 8px;
-            background: rgba(200, 200, 200, 0.3); /* Lighter gray for progress background */
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 1rem auto;
-        }
-        
-        .loading-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #00d4ff, #ff007f);
-            border-radius: 10px;
-            animation: progressSlide 2s ease-in-out infinite;
-        }
-        
-        @keyframes progressSlide {
-            0% { width: 20%; }
-            50% { width: 80%; }
-            100% { width: 20%; }
-        }
-        
-        .success-notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-            min-width: 350px;
-            display: none;
-            animation: slideInRight 0.6s ease-out;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        }
-        
-        @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(100%);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-        
-        .btn-generate {
-            background: linear-gradient(135deg, #007bff, #0056b3); /* Blue gradient */
-            border: none;
-            padding: 0.8rem 2.5rem;
-            font-weight: 700;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .btn-generate:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4); /* Blue shadow */
-            color: white;
-            background: linear-gradient(135deg, #0056b3, #003d80); /* Darker blue on hover */
-        }
-        
-        .title-section {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        
-        .title-section h2 {
-            font-weight: 800;
-            margin-bottom: 0.5rem;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        .title-section hr {
-            width: 70%;
-            margin: 1rem auto;
-            border: 3px solid rgba(0, 0, 0, 0.2); /* Adjusted for white background */
-            border-radius: 5px;
-        }
-        
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-        
-        .json-badge {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-            color: white;
-            padding: 0.3rem 1rem;
-            border-radius: 25px;
-            font-weight: bold;
-            font-size: 0.9rem;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-        }
-        
-        .download-status {
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-            color: #333; /* Match text color */
-        }
     </style>
 </head>
 <body class="bg-light">
     <div class="container">
         <div class="report-container">
-            <div class="title-section">
+            <div class="title-section text-center">
                 <hr>
                 <h2>
                     <i class="fas fa-file-code me-2"></i>
-                    Generar Rips 
+                    Generar RIPS 
                     <span class="json-badge">JSON</span>
-                    Por Fecha
+                    <small class="text-muted d-block mt-2" style="font-size: 0.7em;">
+                        <i class="fas fa-home me-1"></i>
+                        Incluye Visitas Domiciliarias desde API Laravel
+                    </small>
                 </h2>
                 <hr>
+            </div>
+            
+            <!-- Estado de la API -->
+            <div class="text-center mb-3">
+                <div class="api-status">
+                    <i class="fas fa-wifi me-1"></i>
+                    API Laravel Conectada - Visitas Domiciliarias Disponibles
+                </div>
             </div>
             
             <div class="form-content">
                 <form id="reportForm" method="post" action="<?= site_url('CInforme/Exportar_json') ?>">
                     <div class="form-table">
                         <div class="row align-items-end">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="date-input-group">
                                     <label for="fecha">
                                         <i class="fas fa-calendar-plus me-1 text-primary"></i>
@@ -216,7 +137,7 @@
                                     <input type="date" name="fecha" id="fecha" class="form-control" required>
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="date-input-group">
                                     <label for="fecha1">
                                         <i class="fas fa-calendar-check me-1 text-primary"></i>
@@ -225,12 +146,49 @@
                                     <input type="date" name="fecha1" id="fecha1" class="form-control" required>
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
+                                <div class="sede-input-group">
+                                    <label for="sede_id">
+                                        <i class="fas fa-building me-1 text-success"></i>
+                                        Sede (Opcional):
+                                    </label>
+                                    <select name="sede_id" id="sede_id" class="form-control">
+                                        <option value="">Todas las sedes</option>
+                                        <?php if (isset($sedes) && !empty($sedes)): ?>
+                                            <?php foreach ($sedes as $sede): ?>
+                                                <option value="<?= $sede['id'] ?>">
+                                                    <?= htmlspecialchars($sede['nombresede']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <option value="1">Cajibío</option>
+                                            <option value="2">Piendamó</option>
+                                            <option value="3">Morales</option>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
                                 <div class="d-grid">
                                     <button id="exportButton" type="submit" class="btn btn-generate">
                                         <i class="fas fa-download me-2"></i>
                                         Generar JSON
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Información adicional -->
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-info-circle me-2"></i>Información del Proceso:</h6>
+                                    <ul class="mb-0">
+                                        <li><strong>Datos Locales:</strong> Historia clínica, consultas y procedimientos</li>
+                                        <li><strong>Visitas API:</strong> Visitas domiciliarias con código CUPS 890105</li>
+                                        <li><strong>Filtros:</strong> Por rango de fechas y sede específica</li>
+                                        <li><strong>Formato:</strong> JSON RIPS compatible con ADRES</li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -247,41 +205,16 @@
                 <i class="fas fa-cogs"></i>
             </div>
             <div class="loading-text">Generando archivo JSON...</div>
-            <div class="loading-progress">
-                <div class="loading-progress-bar"></div>
-            </div>
             <div class="download-status">
                 <i class="fas fa-info-circle me-1"></i>
-                Procesando datos RIPS...
+                Procesando datos locales y visitas domiciliarias desde API...
             </div>
         </div>
-    </div>
-    
-    <!-- Success Notification -->
-    <div id="successNotification" class="alert alert-success alert-dismissible success-notification" role="alert">
-        <div class="d-flex align-items-center">
-            <div class="me-3">
-                <i class="fas fa-check-circle" style="font-size: 2rem; color: #155724;"></i>
-            </div>
-            <div>
-                <h5 class="alert-heading mb-1">
-                    <i class="fas fa-file-download me-2"></i>
-                    ¡Descarga Completa!
-                </h5>
-                <p class="mb-0">El archivo JSON de RIPS se ha generado exitosamente.</p>
-                <small class="text-muted">
-                    <i class="fas fa-clock me-1"></i>
-                    Archivo listo para su uso
-                </small>
-            </div>
-        </div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
         document.getElementById('exportButton').addEventListener('click', function(e) {
-            // Validar fechas antes de enviar
             const fechaDesde = document.getElementById('fecha').value;
             const fechaHasta = document.getElementById('fecha1').value;
             
@@ -300,95 +233,21 @@
             // Mostrar overlay de carga
             document.getElementById('loadingOverlay').style.display = 'block';
             
-            // Detección inteligente de descarga completada
-            let downloadCompleted = false;
-            let startTime = Date.now();
-            
-            // Método 1: Detectar cuando el usuario vuelve a la ventana
-            const onWindowFocus = function() {
-                const elapsed = Date.now() - startTime;
-                if (!downloadCompleted && elapsed > 2000) { // Mínimo 2 segundos
-                    downloadCompleted = true;
-                    completeDownload();
-                    window.removeEventListener('focus', onWindowFocus);
-                }
-            };
-            
-            // Método 2: Detectar cambio de visibilidad de página
-            const onVisibilityChange = function() {
-                const elapsed = Date.now() - startTime;
-                if (!document.hidden && !downloadCompleted && elapsed > 2000) {
-                    downloadCompleted = true;
-                    completeDownload();
-                    document.removeEventListener('visibilitychange', onVisibilityChange);
-                }
-            };
-            
-            // Método 3: Monitoreo inteligente por intervalos
-            let checkCount = 0;
-            const checkInterval = setInterval(function() {
-                checkCount++;
-                const elapsed = Date.now() - startTime;
-                
-                // Condiciones para considerar descarga completa:
-                // - Ha pasado tiempo mínimo (3 segundos)
-                // - Y una de estas condiciones:
-                //   * Han pasado más de 8 segundos
-                //   * Probabilidad creciente basada en el tiempo
-                if (elapsed > 3000 && !downloadCompleted) {
-                    const probability = Math.min(0.15 + (checkCount * 0.1), 0.8);
-                    if (elapsed > 8000 || Math.random() < probability) {
-                        downloadCompleted = true;
-                        clearInterval(checkInterval);
-                        completeDownload();
-                        window.removeEventListener('focus', onWindowFocus);
-                        document.removeEventListener('visibilitychange', onVisibilityChange);
-                    }
-                }
-            }, 1500);
-            
-            // Función para completar la descarga
-            function completeDownload() {
-                setTimeout(function() {
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                    document.getElementById('successNotification').style.display = 'block';
-                    
-                    // Auto-ocultar después de 6 segundos
-                    setTimeout(function() {
-                        const notification = document.getElementById('successNotification');
-                        if (notification.style.display !== 'none') {
-                            notification.style.display = 'none';
-                        }
-                    }, 6000);
-                }, 800);
-            }
-            
-            // Activar detectores
-            window.addEventListener('focus', onWindowFocus);
-            document.addEventListener('visibilitychange', onVisibilityChange);
-            
-            // Fallback de seguridad: máximo 18 segundos
-            setTimeout(function() {
-                if (!downloadCompleted) {
-                    downloadCompleted = true;
-                    clearInterval(checkInterval);
-                    completeDownload();
-                    window.removeEventListener('focus', onWindowFocus);
-                    document.removeEventListener('visibilitychange', onVisibilityChange);
-                }
-            }, 18000);
+            // Ocultar después de un tiempo
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }, 5000);
         });
         
-        // Configurar fechas por defecto y límites
+        // Configurar fechas por defecto
         const today = new Date().toISOString().split('T')[0];
-        document.getElementById('fecha').max = today;
-        document.getElementById('fecha1').max = today;
-        
-        // Establecer rango por defecto (últimos 7 días)
         const lastWeek = new Date();
         lastWeek.setDate(lastWeek.getDate() - 7);
+        
         document.getElementById('fecha').value = lastWeek.toISOString().split('T')[0];
         document.getElementById('fecha1').value = today;
+        document.getElementById('fecha').max = today;
+        document.getElementById('fecha1').max = today;
     </script>
 </body>
 </html>
